@@ -6,7 +6,6 @@ export function useWorkspace(loadFileContentCallback) {
   const activeFileId = ref('');
   const workspaceItems = ref([]);
 
-  // Fungsi helper untuk mencari file di dalam struktur tree yang nested
   const findFileInTree = (items, id) => {
     for (const item of items) {
       if (item.id === id && item.type === 'file') return item;
@@ -20,26 +19,24 @@ export function useWorkspace(loadFileContentCallback) {
 
   const getActiveFile = () => findFileInTree(workspaceItems.value, activeFileId.value);
 
-  // Membaca root storage utama
   const readWorkspaceStorage = async () => {
     try {
       await Filesystem.requestPermissions();
       const result = await Filesystem.readdir({ path: '', directory: Directory.Documents });
       
       workspaceItems.value = result.files.map(file => ({
-        id: file.name, // Pada level root, id memakai nama file langsung
-        type: file.type, // 'file' atau 'directory'
+        id: file.name,
+        type: file.type,
         name: file.name,
-        path: file.name, // Menyimpan relative path asli untuk operasional file
+        path: file.name,
         content: '',
-        children: file.type === 'directory' ? [] : null // Siapkan wadah untuk isi folder
+        children: file.type === 'directory' ? [] : null
       }));
     } catch (e) {
       console.error("Gagal membaca storage asli:", e);
     }
   };
 
-  // Fungsi baru untuk membaca isi dari sub-folder tertentu saat di-expand di sidebar
   const readSubFolder = async (folderPath) => {
     try {
       const result = await Filesystem.readdir({ 
@@ -47,12 +44,11 @@ export function useWorkspace(loadFileContentCallback) {
         directory: Directory.Documents 
       });
 
-      // Cari foldernya di dalam tree statis kita, lalu update properti children-nya
       const updateChildren = (items) => {
         for (let item of items) {
           if (item.id === folderPath && item.type === 'directory') {
             item.children = result.files.map(file => ({
-              id: `${folderPath}/${file.name}`, // Bikin id unik gabungan path
+              id: `${folderPath}/${file.name}`,
               type: file.type,
               name: file.name,
               path: `${folderPath}/${file.name}`,
@@ -87,32 +83,52 @@ export function useWorkspace(loadFileContentCallback) {
     }
   };
 
-  const createNewFile = async () => {
+  // REFACTOR: Menerima targetPath (bisa di root atau di dalam sub-folder)
+  const createNewFile = async (targetPath = '') => {
     const name = prompt("Masukan nama berkas baru:", "untitled.js");
     if (!name) return;
+    
+    // Gabungkan path: kalau ada targetPath jadi 'folder/nama.js', kalau kosong jadi 'nama.js'
+    const fullPath = targetPath ? `${targetPath}/${name}` : name;
+    
     try {
       await Filesystem.writeFile({
-        path: name,
+        path: fullPath,
         data: `// Berkas ${name}\n`,
         directory: Directory.Documents,
         encoding: Encoding.UTF8
       });
-      await readWorkspaceStorage();
+      
+      // Refresh tree: kalau bikinnya di dalem folder, reload foldernya aja. Kalau di root, reload root.
+      if (targetPath) {
+        await readSubFolder(targetPath);
+      } else {
+        await readWorkspaceStorage();
+      }
       
       if (loadFileContentCallback) {
-        await loadFileContentCallback(name);
+        await loadFileContentCallback(fullPath);
       }
     } catch (e) {
       alert("Gagal membuat berkas fisik!");
     }
   };
 
-  const createNewFolder = async () => {
+  // REFACTOR: Menerima targetPath untuk membuat folder baru
+  const createNewFolder = async (targetPath = '') => {
     const name = prompt("Masukan nama folder baru:", "components");
     if (!name) return;
+    
+    const fullPath = targetPath ? `${targetPath}/${name}` : name;
+    
     try {
-      await Filesystem.mkdir({ path: name, directory: Directory.Documents, recursive: false });
-      await readWorkspaceStorage();
+      await Filesystem.mkdir({ path: fullPath, directory: Directory.Documents, recursive: false });
+      
+      if (targetPath) {
+        await readSubFolder(targetPath);
+      } else {
+        await readWorkspaceStorage();
+      }
     } catch (e) {
       alert("Gagal membuat folder fisik!");
     }
@@ -123,7 +139,7 @@ export function useWorkspace(loadFileContentCallback) {
     workspaceItems,
     getActiveFile,
     readWorkspaceStorage,
-    readSubFolder, // Return fungsi baru ini agar bisa dipakai di App.vue / Sidebar
+    readSubFolder,
     saveFileContent,
     createNewFile,
     createNewFolder

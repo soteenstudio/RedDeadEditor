@@ -2,12 +2,14 @@
   <div class="editor-wrap" :class="{ 'sidebar-closed': !isSidebarOpen }">
     <button v-if="!isSidebarOpen" class="open-sidebar-btn" @click="isSidebarOpen = true" title="Buka Sidebar">☰</button>
 
+    <!-- Di dalam template App.vue lo -->
     <Sidebar 
       :items="workspaceItems"
       :activeId="activeFileId"
       @select-file="loadFileContent"
       @create-file="createNewFile"
       @create-folder="createNewFolder"
+      @explore-folder="readSubFolder"
       @toggle-sidebar="isSidebarOpen = false"
     />
 
