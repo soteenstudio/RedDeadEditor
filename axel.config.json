@@ -1,6 +1,4 @@
 {
-  "routes": {
-    "/": "pages/Home.jsx",
-  },
+  "entry": "pages/Home.jsx",
   "output": "www/index.html"
 }

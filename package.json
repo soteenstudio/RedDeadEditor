@@ -3,6 +3,7 @@
     "@capacitor/android": "^8.4.1",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
-    "axor": "file:axor-0.1.0-alpha.0.tgz"
+    "axor": "file:axor-0.1.0-alpha.0.tgz",
+    "esbuild": "^0.28.1"
   }
 }
