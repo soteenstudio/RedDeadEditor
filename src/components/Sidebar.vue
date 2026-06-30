@@ -1,101 +1,240 @@
+<!-- src/components/Sidebar.vue -->
 <template>
   <div class="sidebar-wrapper">
     <!-- Activity Bar -->
     <div class="activity-bar">
-      <div class="activity-item active" title="Explorer"><span class="act-icon">📁</span></div>
-      <div class="activity-item" title="Search"><span class="act-icon">🔍</span></div>
-      <div class="activity-item" title="Source Control"><span class="act-icon">🌿</span></div>
-      <div class="activity-item" title="Extensions"><span class="act-icon">🧩</span></div>
+      <div class="activity-item active" title="Explorer">
+        <span class="act-icon">📁</span>
+      </div>
+      <div class="activity-item" title="Search">
+        <span class="act-icon">🔍</span>
+      </div>
+      <div class="activity-item" title="Source Control">
+        <span class="act-icon">🌿</span>
+      </div>
+      <div class="activity-item" title="Extensions">
+        <span class="act-icon">🧩</span>
+      </div>
     </div>
 
     <!-- Container Utama Explorer -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <span>EXPLORER: REDDEAD</span>
-        <button class="close-btn" @click="$emit('toggle-sidebar')" title="Tutup Sidebar">⌕</button>
+        <button
+          class="close-btn"
+          title="Tutup Sidebar"
+          @click="$emit('toggle-sidebar')"
+        >
+          ⌕
+        </button>
       </div>
-      
+
       <div class="sidebar-actions">
-        <!-- Mengirim selectedFolder ke Parent pas tombol di-klik -->
-        <button @click="$emit('create-file', selectedFolder)" :title="selectedFolder ? `New File di ${selectedFolder}` : 'New File di Root'">📄+</button>
-        <button @click="$emit('create-folder', selectedFolder)" :title="selectedFolder ? `New Folder di ${selectedFolder}` : 'New Folder di Root'">📁+</button>
+        <button @click="triggerCreate('file')">
+          <font-awesome-icon icon="fa-solid fa-file-circle-plus" />
+        </button>
+        <button @click="triggerCreate('folder')">
+          <font-awesome-icon icon="fa-solid fa-folder-plus" />
+        </button>
       </div>
 
       <div class="file-tree" @click.self="selectedFolder = ''">
-        <!-- Memakai template rekursif lewat tag berulang atau helper render -->
         <div class="tree-container">
           <div v-for="item in items" :key="item.id" class="tree-item">
-            
-            <!-- Render Folder -->
+            <!-- Render Folder Root -->
             <div v-if="item.type === 'directory'" class="folder-group">
-              <div 
-                class="item-folder" 
+              <div
+                class="item-folder row-item"
                 :class="{ 'folder-selected': item.id === selectedFolder }"
                 @click.stop="clickFolder(item.id)"
               >
-                <span class="icon">{{ isFolderOpen(item.id) ? '📂' : '📁' }}</span>
-                <span class="name">{{ item.name }}</span>
+                <div class="item-info">
+                  <span class="icon">
+                    <font-awesome-icon
+                      :icon="isFolderOpen(item.id) ? 'folder-open' : 'folder'"
+                    />
+                  </span>
+                  <span class="name">{{ item.name }}</span>
+                </div>
+                <button class="menu-trigger" @click.stop="openMenu(item)">
+                  ⋮
+                </button>
               </div>
-              
-              <!-- Render Anak di dalam Folder secara berjenjang jika statusnya terbuka -->
-              <div v-if="isFolderOpen(item.id) && item.children" class="folder-children" style="padding-left: 15px;">
-                <!-- Mengulang item anak -->
+
+              <!-- Render Anak di dalam Folder -->
+              <div
+                v-if="isFolderOpen(item.id) && item.children"
+                class="folder-children"
+                style="padding-left: 15px"
+              >
                 <div v-for="child in item.children" :key="child.id">
-                  <div v-if="child.type === 'directory'" class="item-folder" :class="{ 'folder-selected': child.id === selectedFolder }" @click.stop="clickFolder(child.id)">
-                    <span class="icon">{{ isFolderOpen(child.id) ? '📂' : '📁' }}</span>
-                    <span class="name">{{ child.name }}</span>
+                  <!-- Sub-folder -->
+                  <div
+                    v-if="child.type === 'directory'"
+                    class="item-folder row-item"
+                    :class="{ 'folder-selected': child.id === selectedFolder }"
+                    @click.stop="clickFolder(child.id)"
+                  >
+                    <div class="item-info">
+                      <span class="icon">
+                        <font-awesome-icon
+                          :icon="
+                            isFolderOpen(item.id) ? 'folder-open' : 'folder'
+                          "
+                        />
+                      </span>
+                      <span class="name">{{ child.name }}</span>
+                    </div>
+                    <button class="menu-trigger" @click.stop="openMenu(child)">
+                      ⋮
+                    </button>
                   </div>
-                  <div 
-                    v-else 
-                    class="item-file" 
+
+                  <!-- File di dalam folder -->
+                  <div
+                    v-else
+                    class="item-file row-item"
                     :class="{ active: child.id === activeId }"
                     @click.stop="$emit('select-file', child.id)"
                   >
-                    <span class="icon">📄</span>
-                    <span class="name">{{ child.name }}</span>
+                    <div class="item-info">
+                      <span class="icon">
+                        <font-awesome-icon icon="fa-solid fa-file-code" />
+                      </span>
+                      <span class="name">{{ child.name }}</span>
+                    </div>
+                    <button class="menu-trigger" @click.stop="openMenu(child)">
+                      ⋮
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <!-- Render File Root -->
-            <div 
-              v-else 
-              class="item-file" 
+            <div
+              v-else
+              class="item-file row-item"
               :class="{ active: item.id === activeId }"
               @click.stop="$emit('select-file', item.id)"
             >
-              <span class="icon">📄</span>
-              <span class="name">{{ item.name }}</span>
+              <div class="item-info">
+                <span class="icon">
+                  <font-awesome-icon icon="fa-solid fa-file-code" />
+                </span>
+                <span class="name">{{ item.name }}</span>
+              </div>
+              <button class="menu-trigger" @click.stop="openMenu(item)">
+                ⋮
+              </button>
             </div>
-
           </div>
         </div>
       </div>
     </aside>
+
+    <!-- Panggil Komponen Reusable Context Menu -->
+    <ContextMenu
+      :show="menuState.show"
+      :title="menuState.targetItem ? menuState.targetItem.name : 'Unknown'"
+      :options="menuOptions"
+      @close="menuState.show = false"
+      @action="handleMenuAction"
+    />
+
+    <!-- Panggil Modal di paling bawah sebelum tutup div wrapper -->
+    <Modal
+      :show="modalState.show"
+      :title="modalState.title"
+      :message="modalState.message"
+      :type="modalState.type"
+      @close="modalState.show = false"
+      @confirm="handleConfirm"
+    />
   </div>
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
+import ContextMenu from './ContextMenu.vue';
+import Modal from './Modal.vue';
 
 export default {
+  components: { ContextMenu, Modal },
   props: {
     items: { type: Array, required: true },
-    activeId: { type: String, required: true } 
+    activeId: { type: String, required: true },
   },
-  emits: ['toggle-sidebar', 'create-file', 'create-folder', 'select-file', 'explore-folder'],
+  emits: [
+    'toggle-sidebar',
+    'create-file',
+    'create-folder',
+    'select-file',
+    'explore-folder',
+    'rename-item',
+    'delete-item',
+  ],
   setup(props, { emit }) {
     const openedFolders = ref({});
-    const selectedFolder = ref(''); // Mencatat folder mana yang sedang di-klik/dipilih
+    const selectedFolder = ref('');
+
+    const currentAction = ref('');
+
+    const handleConfirm = (name) => {
+      if (currentAction.value === 'file')
+        emit('create-file', selectedFolder.value, name);
+      if (currentAction.value === 'folder')
+        emit('create-folder', selectedFolder.value, name);
+      if (currentAction.value === 'rename')
+        emit('rename-item', menuState.targetItem.id, name);
+
+      if (currentAction.value === 'delete') performDelete();
+    };
+
+    const triggerCreate = (type) => {
+      currentAction.value = type;
+      showModal(
+        'prompt',
+        `Buat ${type === 'file' ? 'File' : 'Folder'} Baru`,
+        ''
+      );
+    };
+
+    const menuState = reactive({
+      show: false,
+      targetItem: null,
+    });
+
+    const modalState = reactive({
+      show: false,
+      title: '',
+      message: '',
+      type: 'alert',
+    });
+
+    const showModal = (type, title, message) => {
+      modalState.type = type;
+      modalState.title = title;
+      modalState.message = message;
+      modalState.show = true;
+    };
+
+    const performDelete = () => {
+      if (menuState.targetItem) {
+        emit('delete-item', menuState.targetItem.id, menuState.targetItem.type);
+      }
+    };
+
+    const openMenu = (item) => {
+      menuState.targetItem = item;
+      menuState.show = true;
+    };
 
     const clickFolder = (folderPath) => {
-      // Set folder ini sebagai target pembuatan file/folder baru
       selectedFolder.value = folderPath;
-
-      // Toggle status buka-tutup
       openedFolders.value[folderPath] = !openedFolders.value[folderPath];
-      
+
       if (openedFolders.value[folderPath]) {
         emit('explore-folder', folderPath);
       }
@@ -105,19 +244,75 @@ export default {
       return !!openedFolders.value[folderPath];
     };
 
+    const handleMenuAction = (actionType) => {
+      if (!menuState.targetItem) return;
+
+      if (actionType === 'rename') {
+        currentAction.value = 'rename';
+        showModal(
+          'prompt',
+          'Rename Item',
+          `Rename ${menuState.targetItem.name} jadi:`
+        );
+      } else if (actionType === 'delete') {
+        currentAction.value = 'delete';
+        showModal(
+          'confirm',
+          'Konfirmasi Hapus',
+          `Yakin mau hapus ${menuState.targetItem.name}?`
+        );
+      }
+    };
+
+    const menuOptions = [
+      { id: 'rename', label: 'Rename', icon: 'pen', danger: false },
+      { id: 'delete', label: 'Delete', icon: 'trash', danger: true },
+    ];
+
     return {
       selectedFolder,
       clickFolder,
-      isFolderOpen
+      isFolderOpen,
+      menuState,
+      openMenu,
+      handleMenuAction,
+      menuOptions,
+      modalState,
+      showModal,
+      triggerCreate,
+      handleConfirm,
     };
-  }
-}
+  },
+};
 </script>
 
 <style scoped>
-/* Sedikit tambahan style untuk menandai folder yang lagi aktif ditarget */
 .folder-selected {
   background-color: rgba(0, 122, 204, 0.2) !important;
   outline: 1px dashed #007acc;
+}
+.row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.item-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.menu-trigger {
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0;
+  padding: 0 4px;
+}
+.row-item:hover .menu-trigger {
+  opacity: 1;
 }
 </style>

@@ -1,4 +1,3 @@
-// src/composables/useWorkspace.js
 import { ref } from 'vue';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
@@ -17,43 +16,47 @@ export function useWorkspace(loadFileContentCallback) {
     return null;
   };
 
-  const getActiveFile = () => findFileInTree(workspaceItems.value, activeFileId.value);
+  const getActiveFile = () =>
+    findFileInTree(workspaceItems.value, activeFileId.value);
 
   const readWorkspaceStorage = async () => {
     try {
       await Filesystem.requestPermissions();
-      const result = await Filesystem.readdir({ path: '', directory: Directory.Documents });
-      
-      workspaceItems.value = result.files.map(file => ({
+      const result = await Filesystem.readdir({
+        path: '',
+        directory: Directory.Documents,
+      });
+
+      workspaceItems.value = result.files.map((file) => ({
         id: file.name,
         type: file.type,
         name: file.name,
         path: file.name,
         content: '',
-        children: file.type === 'directory' ? [] : null
+        children: file.type === 'directory' ? [] : null,
       }));
     } catch (e) {
-      console.error("Gagal membaca storage asli:", e);
+      console.error('Gagal membaca storage asli:', e);
     }
   };
 
   const readSubFolder = async (folderPath) => {
     try {
-      const result = await Filesystem.readdir({ 
-        path: folderPath, 
-        directory: Directory.Documents 
+      const result = await Filesystem.readdir({
+        path: folderPath,
+        directory: Directory.Documents,
       });
 
       const updateChildren = (items) => {
         for (let item of items) {
           if (item.id === folderPath && item.type === 'directory') {
-            item.children = result.files.map(file => ({
+            item.children = result.files.map((file) => ({
               id: `${folderPath}/${file.name}`,
               type: file.type,
               name: file.name,
               path: `${folderPath}/${file.name}`,
               content: '',
-              children: file.type === 'directory' ? [] : null
+              children: file.type === 'directory' ? [] : null,
             }));
             return true;
           }
@@ -76,61 +79,112 @@ export function useWorkspace(loadFileContentCallback) {
         path: filePath,
         data: text,
         directory: Directory.Documents,
-        encoding: Encoding.UTF8
+        encoding: Encoding.UTF8,
       });
     } catch (e) {
-      console.error("Gagal auto-save berkas:", e);
+      console.error('Gagal auto-save berkas:', e);
     }
   };
 
-  // REFACTOR: Menerima targetPath (bisa di root atau di dalam sub-folder)
-  const createNewFile = async (targetPath = '') => {
-    const name = prompt("Masukan nama berkas baru:", "untitled.js");
+  const createNewFile = async (targetPath = '', name) => {
     if (!name) return;
-    
-    // Gabungkan path: kalau ada targetPath jadi 'folder/nama.js', kalau kosong jadi 'nama.js'
     const fullPath = targetPath ? `${targetPath}/${name}` : name;
-    
     try {
       await Filesystem.writeFile({
         path: fullPath,
-        data: `// Berkas ${name}\n`,
+        data: `// ${name}\n`,
         directory: Directory.Documents,
-        encoding: Encoding.UTF8
+        encoding: Encoding.UTF8,
       });
-      
-      // Refresh tree: kalau bikinnya di dalem folder, reload foldernya aja. Kalau di root, reload root.
-      if (targetPath) {
-        await readSubFolder(targetPath);
-      } else {
-        await readWorkspaceStorage();
-      }
-      
-      if (loadFileContentCallback) {
-        await loadFileContentCallback(fullPath);
-      }
+      targetPath
+        ? await readSubFolder(targetPath)
+        : await readWorkspaceStorage();
+      if (loadFileContentCallback) await loadFileContentCallback(fullPath);
     } catch (e) {
-      alert("Gagal membuat berkas fisik!");
+      console.error(e);
     }
   };
 
-  // REFACTOR: Menerima targetPath untuk membuat folder baru
-  const createNewFolder = async (targetPath = '') => {
-    const name = prompt("Masukan nama folder baru:", "components");
+  const createNewFolder = async (targetPath = '', name) => {
     if (!name) return;
-    
+
     const fullPath = targetPath ? `${targetPath}/${name}` : name;
-    
+
     try {
-      await Filesystem.mkdir({ path: fullPath, directory: Directory.Documents, recursive: false });
-      
+      await Filesystem.mkdir({
+        path: fullPath,
+        directory: Directory.Documents,
+        recursive: false,
+      });
+
       if (targetPath) {
         await readSubFolder(targetPath);
       } else {
         await readWorkspaceStorage();
       }
+      return true;
     } catch (e) {
-      alert("Gagal membuat folder fisik!");
+      console.error('Gagal buat folder:', e);
+      return false;
+    }
+  };
+
+  const renameItem = async (oldPath, newName) => {
+    if (!newName) return;
+
+    const pathParts = oldPath.split('/');
+    const oldName = pathParts[pathParts.length - 1];
+
+    if (newName === oldName) return;
+
+    pathParts[pathParts.length - 1] = newName;
+    const newPath = pathParts.join('/');
+
+    try {
+      await Filesystem.rename({
+        from: oldPath,
+        to: newPath,
+        directory: Directory.Documents,
+      });
+
+      const parentPath = pathParts.slice(0, -1).join('/');
+      if (parentPath) {
+        await readSubFolder(parentPath);
+      } else {
+        await readWorkspaceStorage();
+      }
+
+      if (activeFileId.value === oldPath) {
+        activeFileId.value = newPath;
+      }
+      return true;
+    } catch (e) {
+      console.error('Gagal rename:', e);
+      return false;
+    }
+  };
+
+  const deleteItem = async (targetPath, type) => {
+    try {
+      if (type === 'directory')
+        await Filesystem.rmdir({
+          path: targetPath,
+          directory: Directory.Documents,
+          recursive: true,
+        });
+      else
+        await Filesystem.deleteFile({
+          path: targetPath,
+          directory: Directory.Documents,
+        });
+
+      const parentPath = targetPath.split('/').slice(0, -1).join('/');
+      parentPath
+        ? await readSubFolder(parentPath)
+        : await readWorkspaceStorage();
+      if (activeFileId.value === targetPath) activeFileId.value = '';
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -142,6 +196,8 @@ export function useWorkspace(loadFileContentCallback) {
     readSubFolder,
     saveFileContent,
     createNewFile,
-    createNewFolder
+    createNewFolder,
+    renameItem,
+    deleteItem,
   };
 }
