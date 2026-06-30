@@ -12,22 +12,45 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
+    - name: Setup Node.js & Cache npm
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Kita pake Node.js versi modern
+        node-version: '22'
+        cache: 'npm' # Otomatis nge-cache folder global (.npm) berdasarkan package-lock.json
 
-    - name: Setup Java JDK
+    - name: Setup Java JDK & Cache Gradle Core
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
+        cache: 'gradle' # Otomatis nge-cache metadata & core dari Gradle wrapper
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    # Kunci penghematan: Cache dependensi Gradle (library Android yang didownload)
+    - name: Cache Gradle Dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          android/.gradle
+        key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    # Cache folder node_modules biar "npm install" tinggal skip kalo gak ada package baru
+    - name: Cache Node Modules
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
     - name: Install Dependencies
-      run: npm install
+      run: npm ci # Pake 'npm ci' lebih cepet & konsisten buat environment CI/CD dibanding 'npm install'
 
     - name: Sync Capacitor
       run: npx cap sync android
