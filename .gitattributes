@@ -1,3 +1,2 @@
+/*.js          linguist-detectable=false
 www/*          linguist-detectable=false
-*.js           linguist-detectable=false
-\!src/**/*.js   linguist-detectable=false
