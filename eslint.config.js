@@ -47,7 +47,6 @@ const customNoCommentRule = {
 };
 
 export default [
-  // 1. Setup dasar
   {
     name: 'app/files-to-lint',
     files: ['**/*.{js,vue}'],
@@ -64,14 +63,12 @@ export default [
       'no-unused-vars': 'warn',
       'semi': ['error', 'always'],
       'quotes': ['error', 'single'],
-      'prettier/prettier': 'error',
+      'prettier/prettier': ['error', {
+        "comments": false 
+      }],
     },
   },
-
-  // 2. Load plugin recommended
   ...pluginVue.configs['flat/recommended'],
-
-  // 3. FIX: Override rule di sini agar menimpa yang dari 'recommended'
   {
     rules: {
       'vue/multi-word-component-names': 'off',

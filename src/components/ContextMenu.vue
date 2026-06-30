@@ -12,7 +12,8 @@
         :class="{ delete: opt.danger }"
         @click="handleAction(opt.id)"
       >
-        <font-awesome-icon :icon="opt.icon" /> {{ opt.label }}
+        <font-awesome-icon :icon="opt.icon" />
+        {{ opt.label }}
       </div>
     </div>
   </div>
