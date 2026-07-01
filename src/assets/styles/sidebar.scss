@@ -19,6 +19,17 @@
     box-sizing: border-box !important;
     border-right: 1px solid #111 !important;
   }
+
+  .top-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+  }
+
+  .settings-icon {
+    margin-top: auto !important;
+    padding-bottom: 10px !important;
+  }
   
   .activity-item {
     width: 100% !important;
