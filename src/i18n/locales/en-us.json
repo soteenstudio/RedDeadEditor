@@ -13,5 +13,6 @@
   "button:ok-confirm": "OK",
   "title:explorer": "Explorer",
   "title:addons": "Add-Ons Manager",
-  "coming-soon": "Coming soon."
+  "coming-soon": "Coming soon.",
+  "placeholder:search-addons": "Search Add-Ons..."
 }

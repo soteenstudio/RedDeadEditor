@@ -16,7 +16,7 @@
         @explore-folder="(path) => $emit('explore-folder', path)"
         @toggle-sidebar="$emit('toggle-sidebar')"
       />
-      
+
       <Addons
         v-if="activeTab === 'addons'"
         @toggle-sidebar="$emit('toggle-sidebar')"

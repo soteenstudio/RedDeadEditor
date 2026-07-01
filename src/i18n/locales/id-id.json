@@ -13,5 +13,6 @@
   "button:ok-confirm": "OK",
   "title:explorer": "Penjelajah",
   "title:addons": "Pengelola Tambahan",
-  "coming-soon": "Segera hadir."
+  "coming-soon": "Segera hadir.",
+  "placeholder:search-addons": "Cari Tambahan..."
 }
